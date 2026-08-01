@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Now Playing Widget</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; background: #09090b; }
+      now-playing-widget { --now-playing-width: 440px; }
+    </style>
+    <script type="module" src="../../widget/now-playing-widget.js"></script>
+  </head>
+  <body>
+    <now-playing-widget endpoint="/api/now-playing" owner-name="Alif"></now-playing-widget>
+  </body>
+</html>

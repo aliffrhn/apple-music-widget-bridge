@@ -1,0 +1,13 @@
+# Merge this route into your existing site block.
+example.com {
+    handle /api/now-playing* {
+        request_body {
+            max_size 2MB
+        }
+        reverse_proxy 127.0.0.1:8787
+    }
+
+    # Keep the rest of your existing site configuration here.
+    root * /var/www/example.com
+    file_server
+}

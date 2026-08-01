@@ -1,0 +1,17 @@
+{
+  "name": "@aliffrhn/apple-music-widget",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The pixel-style Apple Music widget used on aliffar.com",
+  "scripts": {
+    "test": "node --test src/model.test.mjs"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./styles.css": "./src/styles.css"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}

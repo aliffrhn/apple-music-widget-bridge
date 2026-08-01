@@ -1,0 +1,13 @@
+{
+  "name": "apple-music-widget-bridge-widget",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-independent Web Component for Apple Music Widget Bridge",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test now-playing-widget.test.mjs"
+  }
+}

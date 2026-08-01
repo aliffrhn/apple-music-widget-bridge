@@ -1,0 +1,7 @@
+.DS_Store
+*.log
+.now-playing-artwork.*
+current-artwork
+.env
+**/node_modules/
+**/dist/

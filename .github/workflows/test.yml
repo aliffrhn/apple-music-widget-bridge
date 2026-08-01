@@ -1,0 +1,41 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test receiver
+        working-directory: receiver
+        run: npm test
+      - name: Test universal widget
+        working-directory: widget
+        run: npm test
+      - name: Test React widget model
+        working-directory: widget/react
+        run: npm test
+      - name: Install React example
+        working-directory: examples/react
+        run: npm ci
+      - name: Build React example
+        working-directory: examples/react
+        run: npm run build
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run release checks
+        run: ./tests/run.sh

@@ -1,0 +1,75 @@
+.apple-music-widget {
+  --amw-ink: #212529;
+  --amw-muted: #6b6b6b;
+  --amw-bg: #fff;
+  --amw-border: #ebebeb;
+  --amw-accent: #0077cc;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: 126px;
+  padding: 14px 16px;
+  overflow: hidden;
+  border: 1px solid var(--amw-border);
+  border-radius: 14px;
+  color: var(--amw-ink);
+  background: var(--amw-bg);
+  box-shadow: 0 10px 28px rgb(33 37 41 / 6%);
+  box-sizing: border-box;
+  font-family: Inter, system-ui, sans-serif;
+}
+.apple-music-widget * { box-sizing: border-box; }
+.amw-main { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; height: 100%; }
+.amw-artwork-frame {
+  position: relative; width: 98px; height: 98px; overflow: hidden;
+  border: 1px solid var(--amw-border); border-radius: 10px; background-color: var(--amw-bg);
+  background-image: repeating-conic-gradient(var(--amw-border) 0% 25%, transparent 0% 50%);
+  background-size: 14px 14px; animation: amw-checker-crawl 1.8s steps(2, end) infinite;
+}
+.amw-artwork-frame.is-ready { animation: none; }
+.amw-artwork-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--amw-muted); }
+.amw-card--playing .amw-artwork-placeholder { color: var(--amw-accent); }
+.amw-artwork-note {
+  width: 7px; height: 7px; background: transparent; transform: translate(-24.5px, -24.5px);
+  animation: amw-note-hop .9s steps(1, end) infinite;
+  box-shadow: 21px 0 currentColor,28px 0 currentColor,21px 7px currentColor,35px 7px currentColor,
+    21px 14px currentColor,42px 14px currentColor,21px 21px currentColor,35px 21px currentColor,
+    21px 28px currentColor,7px 35px currentColor,14px 35px currentColor,21px 35px currentColor,
+    0 42px currentColor,7px 42px currentColor,14px 42px currentColor,21px 42px currentColor,
+    7px 49px currentColor,14px 49px currentColor;
+}
+.amw-artwork { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.amw-artwork-frame.is-ready .amw-artwork { opacity: 1; transition: opacity .45s steps(4, end); }
+.amw-card--offline .amw-artwork-frame { opacity: .72; filter: grayscale(.6); }
+.amw-status { display: inline-flex; align-items: center; gap: 8px; color: var(--amw-muted); }
+.amw-status .amw-pixel-text { min-width: 0; }
+.amw-pixel-text { display: block; color: inherit; }
+.amw-eq { display: inline-flex; flex-shrink: 0; align-items: flex-end; gap: 2px; height: 12px; }
+.amw-eq span { width: 3px; height: 4px; background: currentColor; }
+.amw-card--playing .amw-status { color: var(--amw-accent); }
+.amw-card--playing .amw-eq span { animation: amw-eq-step .9s steps(1, end) infinite; }
+.amw-card--playing .amw-eq span:nth-child(2) { animation-delay: -.3s; }
+.amw-card--playing .amw-eq span:nth-child(3) { animation-delay: -.6s; }
+.amw-glyph-text { display: block; width: 100%; height: 48px; background: transparent; contain: layout paint; }
+.amw-progress-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; color: var(--amw-muted); }
+.amw-progress { display: flex; gap: 2px; height: 6px; }
+.amw-progress-cell { flex: 1; background: var(--amw-border); }
+.amw-progress-cell.is-filled { background: var(--amw-ink); }
+.amw-progress-cell.is-head { animation: amw-blink 1s steps(1, end) infinite; }
+.amw-card--offline,.amw-card--recent,.amw-card--paused { box-shadow: none; }
+.amw-card--offline .amw-glyph-text,.amw-card--offline .amw-progress-row { opacity: .72; }
+.amw-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@keyframes amw-note-hop { 0%,100%{transform:translate(-24.5px,-24.5px)} 50%{transform:translate(-24.5px,-31.5px)} }
+@keyframes amw-checker-crawl { to { background-position:14px 14px; } }
+@keyframes amw-eq-step { 0%,100%{height:4px} 20%{height:10px} 40%{height:6px} 60%{height:12px} 80%{height:8px} }
+@keyframes amw-blink { 50%{opacity:.3} }
+@media (max-width: 520px) {
+  .apple-music-widget { gap: 12px; padding: 14px 12px; }
+  .amw-artwork-frame { width: 86px; height: 86px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .amw-card--playing .amw-eq span,.amw-progress-cell.is-head,.amw-artwork-frame,.amw-artwork-note { animation:none; }
+  .amw-artwork-frame.is-ready .amw-artwork { transition:none; }
+}

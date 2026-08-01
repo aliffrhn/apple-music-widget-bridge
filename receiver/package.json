@@ -1,0 +1,14 @@
+{
+  "name": "apple-music-widget-bridge-receiver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-independent receiver for Apple Music Widget Bridge",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  }
+}

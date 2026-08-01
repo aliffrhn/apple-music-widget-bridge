@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Apple Music Widget Bridge preview</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 20% 20%, rgb(255 55 95 / 14%), transparent 34%),
+          radial-gradient(circle at 80% 80%, rgb(92 80 255 / 16%), transparent 38%),
+          #09090b;
+      }
+      now-playing-widget {
+        --now-playing-background: #17171b;
+        --now-playing-width: 440px;
+      }
+    </style>
+    <script type="module" src="../../widget/now-playing-widget.js"></script>
+  </head>
+  <body>
+    <now-playing-widget
+      endpoint="http://127.0.0.1:8787/api/now-playing"
+      owner-name="Alif"
+    ></now-playing-widget>
+  </body>
+</html>
