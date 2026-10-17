@@ -15,3 +15,8 @@ updates:
     directory: /receiver
     schedule:
       interval: monthly
+    ignore:
+      # Major Node.js upgrades are chosen by hand so the receiver stays on an
+      # LTS line; odd-numbered releases never become LTS.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
