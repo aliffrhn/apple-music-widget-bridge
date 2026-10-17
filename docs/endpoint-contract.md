@@ -103,7 +103,7 @@ GET /api/now-playing/health
 ```
 
 ```json
-{"ok": true, "version": "0.1.0"}
+{"ok": true, "version": "0.2.0"}
 ```
 
 This route is recommended but optional for custom receivers.
