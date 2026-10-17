@@ -1,8 +1,12 @@
 # Changelog
 
-All notable changes to this project will be documented here.
+All notable changes to this project will be documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-10-17
+
+First public release.
 
 ### Added
 
@@ -27,3 +31,6 @@ All notable changes to this project will be documented here.
 
 - The receiver no longer crashes when a request has a malformed `Host` header.
 - The universal widget no longer shows a stale `playing` state as live after the Mac stops publishing.
+
+[Unreleased]: https://github.com/aliffrhn/apple-music-widget-bridge/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/aliffrhn/apple-music-widget-bridge/releases/tag/v0.1.0
