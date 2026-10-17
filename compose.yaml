@@ -4,7 +4,7 @@ services:
       context: ./receiver
     image: apple-music-widget-bridge-receiver
     # To use a published release instead of building locally, remove `build`
-    # and set: image: ghcr.io/aliffrhn/apple-music-widget-bridge-receiver:0.1
+    # and set: image: ghcr.io/aliffrhn/apple-music-widget-bridge-receiver:0.2
     restart: unless-stopped
     environment:
       NOW_PLAYING_WRITE_SECRET: ${NOW_PLAYING_WRITE_SECRET:?Set NOW_PLAYING_WRITE_SECRET in .env}

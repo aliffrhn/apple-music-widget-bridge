@@ -1,6 +1,6 @@
 {
   "name": "apple-music-widget-bridge-receiver",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Framework-independent receiver for Apple Music Widget Bridge",
