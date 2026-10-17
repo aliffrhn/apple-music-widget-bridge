@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createHandler, normalizeState } from "./server.mjs";
+import { createHandler, createReceiver, normalizeState } from "./server.mjs";
 
+const { version: VERSION } = JSON.parse(await readFile(new URL("./package.json", import.meta.url), "utf8"));
 const SECRET = "test-secret-with-at-least-thirty-two-characters";
 const ID = "0123456789ABCDEF";
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0xff, 0xd9]);
@@ -67,7 +69,7 @@ test("health and initial state are public without exposing secrets", async (t) =
   t.after(() => rm(directory, { recursive: true, force: true }));
   const health = await handler(request("/api/now-playing/health"));
   assert.equal(health.status, 200);
-  assert.deepEqual(await health.json(), { ok: true, version: "0.1.0" });
+  assert.deepEqual(await health.json(), { ok: true, version: VERSION });
   const current = await handler(request("/api/now-playing"));
   const body = await current.json();
   assert.equal(body.status, "unavailable");
@@ -160,4 +162,30 @@ test("enforces request size limits", async (t) => {
   t.after(() => rm(directory, { recursive: true, force: true }));
   const response = await handler(request("/api/now-playing", authenticated("x".repeat(65 * 1024))));
   assert.equal(response.status, 413);
+});
+
+function rawRequest(port, text) {
+  return new Promise((resolve, reject) => {
+    const socket = connect(port, "127.0.0.1", () => socket.end(text));
+    let received = "";
+    socket.setEncoding("utf8");
+    socket.on("data", (chunk) => { received += chunk; });
+    socket.on("end", () => resolve(received));
+    socket.on("error", reject);
+  });
+}
+
+test("survives malformed Host headers without crashing", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "now-playing-receiver-test-"));
+  const server = await createReceiver({ dataDirectory: directory, secret: SECRET, logger: { error() {} } });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await rm(directory, { recursive: true, force: true });
+  });
+  const { port } = server.address();
+  const malformed = await rawRequest(port, "GET /api/now-playing HTTP/1.1\r\nHost: bad host\r\nConnection: close\r\n\r\n");
+  assert.match(malformed, /^HTTP\/1\.1 200 /);
+  const healthy = await fetch(`http://127.0.0.1:${port}/api/now-playing/health`);
+  assert.equal(healthy.status, 200);
 });

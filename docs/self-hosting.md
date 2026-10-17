@@ -23,9 +23,11 @@ curl http://127.0.0.1:8787/api/now-playing/health
 
 The Compose configuration binds to `127.0.0.1`, drops Linux capabilities, uses a read-only container filesystem, and persists data in the `now-playing-data` volume. Do not expose port 8787 directly to the internet.
 
+Tagged releases also publish a multi-architecture image to `ghcr.io/aliffrhn/apple-music-widget-bridge-receiver`. To skip the local build, follow the comment in `compose.yaml` and run `docker compose up -d` without `--build`.
+
 ## 2. Add HTTPS through the existing web server
 
-Use either [`examples/nginx/now-playing.conf`](../examples/nginx/now-playing.conf) or [`examples/caddy/Caddyfile`](../examples/caddy/Caddyfile) as a starting point. The public URL should become:
+Use either [`examples/nginx/now-playing.conf`](../examples/nginx/now-playing.conf) or [`examples/caddy/Caddyfile`](../examples/caddy/Caddyfile) as a starting point. The Nginx example rate-limits the receiver routes; uncomment its `limit_req_zone` line in your `http` block, or `nginx -t` will report an unknown zone. Caddy has no built-in rate limiter, so add a plugin such as `caddy-ratelimit` or a firewall rule if you need one. The public URL should become:
 
 ```text
 https://example.com/api/now-playing

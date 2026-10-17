@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Please use GitHub private vulnerability reporting for security issues when it is available on this repository. If it is unavailable, open an issue that requests a private contact channel, but do not include secrets, personal listening data, or working exploit details in the public issue.
+Please do not open a public issue for a vulnerability. Report it privately through [GitHub private vulnerability reporting](https://github.com/aliffrhn/apple-music-widget-bridge/security/advisories/new) or email **nomunyom@gmail.com**. Do not include secrets, personal listening data, or working exploit details in a public discussion.
 
 Reports should include the affected script or component, expected impact, reproduction conditions, and any suggested mitigation. Please allow time to investigate before publishing details.
 

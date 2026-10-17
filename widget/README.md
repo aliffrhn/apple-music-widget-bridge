@@ -27,4 +27,4 @@ now-playing-widget {
 }
 ```
 
-Optional attributes are `playing-label`, `paused-label`, `stopped-label`, and `idle-label`. Track values are inserted with `textContent`; they are never interpreted as HTML.
+Optional attributes are `playing-label`, `paused-label`, `stopped-label`, and `idle-label`. A `playing` state with no heartbeat for two minutes (for example, the Mac went to sleep) is shown with the stopped label and a frozen progress bar. Track values are inserted with `textContent`; they are never interpreted as HTML.

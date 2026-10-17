@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: npm
+    directory: /examples/react
+    schedule:
+      interval: monthly
+    groups:
+      example-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directory: /receiver
+    schedule:
+      interval: monthly

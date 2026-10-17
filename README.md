@@ -1,4 +1,18 @@
-# Build Your Own Apple Music Widget
+<div align="center">
+
+# Apple Music Widget Bridge
+
+**Build your own live Apple Music widget with a Mac, a tiny self-hosted bridge, and the website you already have.**
+
+[![CI](https://github.com/aliffrhn/apple-music-widget-bridge/actions/workflows/test.yml/badge.svg)](https://github.com/aliffrhn/apple-music-widget-bridge/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/github/license/aliffrhn/apple-music-widget-bridge)](LICENSE)
+[![macOS](https://img.shields.io/badge/publisher-macOS-000000.svg?logo=apple)](now-playing.sh)
+[![Node.js 22+](https://img.shields.io/badge/receiver-Node.js%2022%2B-339933.svg?logo=node.js&logoColor=white)](receiver)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[Live widget](https://aliffar.com/#about) · [Quick start](#quick-start) · [How it works](#architecture) · [Use your own design](#use-your-own-design) · [Contributing](#contributing) · [Security](SECURITY.md)
+
+</div>
 
 I wanted a live music widget on my personal website, so I built a self-hosted bridge that sends what is playing in the Music app on my Mac to the web.
 
@@ -10,7 +24,7 @@ Music app on your Mac → self-hosted bridge → your website widget
 
 See the idea running on [aliffar.com](https://aliffar.com/#about). The GIF below was recorded directly from the deployed widget.
 
-![The animated Apple Music widget from aliffar.com](docs/assets/aliffar-apple-music-widget.gif)
+<img src="docs/assets/aliffar-apple-music-widget.gif" alt="The animated Apple Music widget from aliffar.com" width="480">
 
 The pixel-style React widget shown above is now included in this repository, adapted from the real component on my website and made configurable for other people.
 
@@ -52,7 +66,7 @@ The components communicate through a [documented, versioned HTTP contract](docs/
 
 There is no project-operated cloud service. Each user controls their receiver, secret, published data, and website.
 
-## Five-minute VPS setup
+## Quick start
 
 ### 1. Start the receiver
 
@@ -126,6 +140,12 @@ For plain HTML or another framework, copy the universal [`widget/now-playing-wid
   owner-name="Alif"
   refresh-seconds="10"
 ></now-playing-widget>
+```
+
+Or load a pinned release straight from jsDelivr instead of copying the file:
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/gh/aliffrhn/apple-music-widget-bridge@v0.1.0/widget/now-playing-widget.js"></script>
 ```
 
 It works with plain HTML, WordPress, Vue, Svelte, Astro, and other frameworks that support custom elements. See the [widget integration guide](docs/widget-integration.md) for both options.
@@ -234,6 +254,16 @@ cd ../../examples/react && npm ci && npm run build
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance.
 
+## Contributing
+
+Contributions are welcome—bug reports, setup improvements, new receiver adapters, widget designs, documentation fixes, and focused pull requests all help.
+
+1. Read the [Contributing Guide](CONTRIBUTING.md).
+2. Check the [open issues](https://github.com/aliffrhn/apple-music-widget-bridge/issues) or open one to discuss a larger idea.
+3. Fork the repository, create a focused branch, and send a pull request.
+
+Please also follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report vulnerabilities privately as described in the [Security Policy](SECURITY.md).
+
 ## Limitations
 
 - The publisher is macOS-only and reads the Music app on the same Mac.
@@ -254,3 +284,17 @@ This removes only the integration's LaunchAgent, installed scripts, private stat
 ## License
 
 [MIT](LICENSE)
+
+## Acknowledgments
+
+- The macOS Music app and Apple Events provide the local now-playing state.
+- The pixel-style widget began as the music card on [aliffar.com](https://aliffar.com/#about).
+- Everyone who tests the bridge on a different VPS, proxy, or website framework.
+
+---
+
+<div align="center">
+
+If this helps you build your own music widget, consider giving the project a ⭐—it helps other personal-site builders find it.
+
+</div>

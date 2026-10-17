@@ -2,11 +2,11 @@
 
 setopt NO_UNSET PIPE_FAIL
 
-readonly LABEL="com.nomunyom.now-playing-sync"
+readonly LABEL="io.github.aliffrhn.apple-music-widget-bridge"
 readonly INSTALL_DIR="${NOW_PLAYING_INSTALL_DIR:-$HOME/Library/Application Support/NowPlayingSync}"
 readonly READER="${NOW_PLAYING_READER:-$INSTALL_DIR/now-playing.sh}"
 readonly CONFIG_FILE="${NOW_PLAYING_CONFIG:-$HOME/.config/now-playing-sync/config}"
-readonly KEYCHAIN_SERVICE="nomunyom-now-playing"
+readonly KEYCHAIN_SERVICE="apple-music-widget-bridge"
 typeset -i passed=0 failed=0 warned=0
 endpoint=""
 keychain_account=""
@@ -90,6 +90,9 @@ if /bin/launchctl print "gui/$uid/$LABEL" >/dev/null 2>&1; then
     pass "Background sync LaunchAgent is loaded"
 else
     fail "Background sync LaunchAgent is not loaded"
+fi
+if /bin/launchctl print "gui/$uid/com.nomunyom.now-playing-sync" >/dev/null 2>&1; then
+    warn "A pre-0.1.0 agent (com.nomunyom.now-playing-sync) is still loaded; run install.sh again to migrate it"
 fi
 
 print

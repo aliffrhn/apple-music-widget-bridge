@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Questions and setup help
+    url: https://github.com/aliffrhn/apple-music-widget-bridge/discussions
+    about: Ask setup questions or share your widget in GitHub Discussions.
   - name: Security vulnerability
-    url: https://github.com/aliffrhn/now-playing-bridge/security/advisories/new
+    url: https://github.com/aliffrhn/apple-music-widget-bridge/security/advisories/new
     about: Report vulnerabilities privately without including secrets or listening data in a public issue.
