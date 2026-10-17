@@ -1,0 +1,7 @@
+# Minimal Supabase CLI configuration for the adapter. The CLI uses its defaults
+# for every setting not listed here.
+project_id = "apple-music-widget-bridge"
+
+# The function checks X-Now-Playing-Secret itself, and widgets read anonymously.
+[functions.bridge-now-playing]
+verify_jwt = false

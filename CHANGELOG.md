@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+### Added
+
+- Optional Supabase receiver adapter in `examples/supabase`: an Edge Function that implements the full endpoint contract, including public reads with CORS, plus a migration for its table and public artwork bucket, a setup and migration guide, and Deno tests that run in CI.
+
 ## [0.1.0] - 2026-10-17
 
 First public release.

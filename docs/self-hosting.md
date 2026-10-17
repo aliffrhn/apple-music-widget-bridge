@@ -2,6 +2,8 @@
 
 The included receiver is a small, dependency-free Node.js service packaged with Docker. It stores one current state document and one current artwork file. It does not need a database.
 
+To run without a VPS, use the optional [Supabase adapter](../examples/supabase) instead. It implements the same [endpoint contract](endpoint-contract.md) as a Supabase Edge Function, so the publisher and widgets work with it unchanged.
+
 ## 1. Prepare the service
 
 On the VPS:
