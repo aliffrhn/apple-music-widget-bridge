@@ -61,7 +61,7 @@ CI runs the macOS publisher checks, Node.js tests, and React example build on ev
 
 ## Releasing (maintainers)
 
-1. Make sure every `package.json` has the new version: `node scripts/check-versions.mjs`.
+1. Make sure every `package.json` and the Supabase adapter's `VERSION` in `examples/supabase/supabase/functions/bridge-now-playing/handler.ts` have the new version: `node scripts/check-versions.mjs`.
 2. Move the `[Unreleased]` entries in `CHANGELOG.md` under a `## [X.Y.Z] - YYYY-MM-DD` heading.
 3. Commit, then tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 

@@ -5,3 +5,8 @@ current-artwork
 .env
 **/node_modules/
 **/dist/
+
+# Supabase CLI state
+examples/supabase/supabase/.temp/
+examples/supabase/supabase/.branches/
+.env.bridge

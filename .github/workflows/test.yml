@@ -37,6 +37,61 @@ jobs:
         working-directory: examples/react
         run: npm run build
 
+  supabase:
+    name: Supabase adapter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Lint and type-check the Edge Function
+        run: |
+          deno lint examples/supabase
+          deno check examples/supabase/supabase/functions/bridge-now-playing/index.ts
+      - name: Test the Edge Function handler
+        run: deno test examples/supabase
+      - name: Apply the migration to Postgres
+        run: |
+          # Stand in for the roles and Storage table that Supabase provides.
+          psql -v ON_ERROR_STOP=1 -c "
+            create role anon nologin;
+            create role authenticated nologin;
+            create role service_role nologin bypassrls;
+            grant usage on schema public to anon, authenticated, service_role;
+            create schema storage;
+            create table storage.buckets (
+              id text primary key, name text not null, public boolean,
+              file_size_limit bigint, allowed_mime_types text[]
+            );"
+          # Twice, to confirm the migration can be re-run.
+          for run in 1 2; do
+            psql -v ON_ERROR_STOP=1 -q -f examples/supabase/supabase/migrations/*_bridge_now_playing.sql
+          done
+          test "$(psql -tAc "select status from public.bridge_now_playing where id = 'current'")" = unavailable
+          test "$(psql -tAc "select public from storage.buckets where id = 'bridge-now-playing-artwork'")" = t
+          if psql -c "set role anon; select * from public.bridge_now_playing" >/dev/null 2>&1; then
+            echo "anon can read the state table" >&2
+            exit 1
+          fi
+
   macos:
     name: macOS publisher
     runs-on: macos-latest

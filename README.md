@@ -44,6 +44,7 @@ This project takes a narrower route. It reads the current track from the built-i
 - **The aliffar.com React widget:** the animated pixel-style card from the live website, adapted to the public receiver API.
 - **Universal widget:** a dependency-free Web Component for plain HTML and non-React sites.
 - **VPS examples:** Nginx and Caddy reverse-proxy configurations.
+- **Optional Supabase adapter:** an Edge Function receiver for people without a VPS.
 - **Tests and security documentation:** checks for both the local publisher and public receiver.
 
 The components communicate through a [documented, versioned HTTP contract](docs/endpoint-contract.md). You can replace the receiver or widget without changing the Mac publisher.
@@ -94,6 +95,8 @@ https://example.com/api/now-playing
 ```
 
 See the complete [VPS self-hosting guide](docs/self-hosting.md).
+
+No VPS? The optional [Supabase adapter](examples/supabase) runs the same receiver contract as an Edge Function with a Postgres table and a Storage bucket.
 
 ### 2. Install the Mac publisher
 
@@ -231,6 +234,7 @@ Keep the receiver behind HTTPS, bound to VPS loopback, and never put the write s
 ├── examples/react/                runnable React example
 ├── examples/nginx/                Nginx reverse proxy
 ├── examples/caddy/                Caddy reverse proxy
+├── examples/supabase/             optional Supabase Edge Function receiver
 ├── docs/                          protocol and setup guides
 └── compose.yaml                   self-hosted receiver stack
 ```
@@ -250,6 +254,12 @@ cd receiver && npm test
 cd ../widget && npm test
 cd react && npm test
 cd ../../examples/react && npm ci && npm run build
+```
+
+The Supabase adapter tests require [Deno](https://docs.deno.com/runtime/getting_started/installation/) 2 and run from the repository root:
+
+```sh
+deno test examples/supabase
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance.

@@ -17,6 +17,9 @@ for (const path of packages) {
   const { version } = JSON.parse(await readFile(new URL(path, root), "utf8"));
   versions.set(path, version);
 }
+// The Supabase adapter has no package.json, so read its health version.
+const adapter = "examples/supabase/supabase/functions/bridge-now-playing/handler.ts";
+versions.set(adapter, (await readFile(new URL(adapter, root), "utf8")).match(/^export const VERSION = "([^"]+)";$/m)?.[1]);
 const expected = versions.get(packages[0]);
 for (const [path, version] of versions) {
   if (version !== expected) errors.push(`${path} has version ${version}; expected ${expected}`);
