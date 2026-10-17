@@ -1,14 +1,27 @@
-## What changed
+## What does this PR do?
 
-Describe the problem and the implementation.
+<!-- Summarize the problem and the focused change. Link an issue when one exists. -->
 
-## Verification
+Fixes #
 
-- [ ] macOS publisher checks pass when applicable (`./tests/run.sh`)
-- [ ] receiver tests pass when applicable (`cd receiver && npm test`)
-- [ ] widget tests pass when applicable (`cd widget && npm test`)
-- [ ] documentation was updated for contract or setup changes
+## Type of change
 
-## Security and privacy
+- [ ] Bug fix
+- [ ] New feature or adapter
+- [ ] Widget or design improvement
+- [ ] Documentation
+- [ ] Refactor or cleanup
 
-Confirm that this change does not expose write secrets, log listening metadata unnecessarily, or make the core protocol dependent on a specific framework or hosting vendor.
+## How was this tested?
+
+<!-- List the exact commands and any manual Mac, receiver, proxy, or browser checks. -->
+
+## Checklist
+
+- [ ] Publisher checks pass when applicable (`./tests/run.sh`)
+- [ ] Receiver tests pass when applicable (`cd receiver && npm test`)
+- [ ] Universal and React widget tests pass when applicable
+- [ ] The React example builds when applicable (`cd examples/react && npm ci && npm run build`)
+- [ ] Documentation is updated for setup or contract changes
+- [ ] No write secret, private endpoint, or listening history is included
+- [ ] The change keeps the core protocol framework- and vendor-independent

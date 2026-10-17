@@ -14,6 +14,7 @@ body:
       options:
         - macOS publisher
         - self-hosted receiver
+        - React widget
         - universal widget
         - documentation or deployment
     validations:
@@ -42,3 +43,9 @@ body:
     attributes:
       label: Environment
       description: macOS, browser, Node.js, Docker, and reverse proxy versions that are relevant.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Remove secrets, private endpoint URLs, and listening data before pasting output.
+      render: shell
