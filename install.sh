@@ -2,12 +2,16 @@
 
 set -e
 
-readonly LABEL="com.nomunyom.now-playing-sync"
-readonly KEYCHAIN_SERVICE="nomunyom-now-playing"
+readonly LABEL="io.github.aliffrhn.apple-music-widget-bridge"
+readonly KEYCHAIN_SERVICE="apple-music-widget-bridge"
+# Names used before the 0.1.0 open-source release; migrated and cleaned up.
+readonly LEGACY_LABEL="com.nomunyom.now-playing-sync"
+readonly LEGACY_KEYCHAIN_SERVICE="nomunyom-now-playing"
 readonly INSTALL_DIR="$HOME/Library/Application Support/NowPlayingSync"
 readonly CONFIG_DIR="$HOME/.config/now-playing-sync"
 readonly CONFIG_FILE="$CONFIG_DIR/config"
 readonly PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+readonly LEGACY_PLIST="$HOME/Library/LaunchAgents/$LEGACY_LABEL.plist"
 readonly SOURCE_DIR="${0:A:h}"
 endpoint=""
 artwork_enabled=1
@@ -75,7 +79,7 @@ xml_path="${xml_path//\"/&quot;}"
 replacement="${xml_path//&/\\&}/sync-now-playing.sh"
 replacement="${replacement//|/\\|}"
 /usr/bin/sed "s|__SYNC_SCRIPT__|$replacement|g" \
-    "$SOURCE_DIR/com.nomunyom.now-playing-sync.plist.template" > "$stage_dir/agent.plist"
+    "$SOURCE_DIR/io.github.aliffrhn.apple-music-widget-bridge.plist.template" > "$stage_dir/agent.plist"
 /bin/chmod 600 "$stage_dir/agent.plist"
 /usr/bin/plutil -lint "$stage_dir/agent.plist" >/dev/null
 
@@ -105,6 +109,13 @@ print -- "The input is handled by macOS security(1) and will not appear in this 
 /usr/bin/install -m 600 "$stage_dir/agent.plist" "$PLIST"
 
 uid=$(/usr/bin/id -u)
+if [[ -f "$LEGACY_PLIST" ]] || /bin/launchctl print "gui/$uid/$LEGACY_LABEL" >/dev/null 2>&1; then
+    print -- "Migrating the previous $LEGACY_LABEL agent."
+    /bin/launchctl bootout "gui/$uid" "$LEGACY_PLIST" >/dev/null 2>&1 || \
+        /bin/launchctl bootout "gui/$uid/$LEGACY_LABEL" >/dev/null 2>&1 || true
+    /bin/rm -f "$LEGACY_PLIST"
+fi
+/usr/bin/security delete-generic-password -a "$account" -s "$LEGACY_KEYCHAIN_SERVICE" >/dev/null 2>&1 || true
 /bin/launchctl bootout "gui/$uid" "$PLIST" >/dev/null 2>&1 || true
 /bin/launchctl bootstrap "gui/$uid" "$PLIST"
 /bin/launchctl enable "gui/$uid/$LABEL" 2>/dev/null || true

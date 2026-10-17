@@ -9,7 +9,7 @@ It includes:
 - stepped equalizer and segmented progress animation;
 - artwork loading and fallback states;
 - freshness, paused, recent, and offline presentation; and
-- recoverable polling without a Supabase dependency.
+- recoverable polling against any receiver that implements the endpoint contract.
 
 Copy `src` into a React application and render:
 

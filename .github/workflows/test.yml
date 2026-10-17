@@ -1,14 +1,17 @@
-name: Test
+name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   node:
+    name: Node receiver & widgets
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -16,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check package versions
+        run: node scripts/check-versions.mjs
       - name: Test receiver
         working-directory: receiver
         run: npm test
@@ -33,9 +38,26 @@ jobs:
         run: npm run build
 
   macos:
+    name: macOS publisher
     runs-on: macos-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Run release checks
         run: ./tests/run.sh
+
+  docker:
+    name: Receiver container
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the Compose stack
+        run: |
+          printf 'NOW_PLAYING_WRITE_SECRET=%s\n' "$(openssl rand -hex 32)" > .env
+          docker compose up -d --build --wait
+      - name: Check health through the published port
+        run: curl --fail --silent http://127.0.0.1:8787/api/now-playing/health
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs

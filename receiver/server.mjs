@@ -4,7 +4,7 @@ import { chmod, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promi
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const VERSION = "0.1.0";
+const { version: VERSION } = JSON.parse(await readFile(new URL("./package.json", import.meta.url), "utf8"));
 const STATE_PATH = "/api/now-playing";
 const ARTWORK_PATH = "/api/now-playing/artwork";
 const HEALTH_PATH = "/api/now-playing/health";
@@ -366,23 +366,42 @@ export async function createHandler({ dataDirectory, secret, logger = console })
   };
 }
 
+// Adapts the fetch-style handler to a Node.js request listener, so it can be
+// mounted on an http or https server.
+export function createRequestListener(handler) {
+  return async (request, response) => {
+    let webRequest;
+    try {
+      // The handler only routes on path and query, so a fixed origin keeps a
+      // malformed client Host header from making the URL invalid.
+      webRequest = new Request(new URL(request.url ?? "/", "http://localhost"), {
+        method: request.method,
+        headers: request.headers,
+        body: request.method === "GET" || request.method === "HEAD" ? undefined : request,
+        duplex: "half",
+      });
+    } catch {
+      response.writeHead(400, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+      response.end(JSON.stringify({ error: "Bad request" }));
+      return;
+    }
+    try {
+      const webResponse = await handler(webRequest);
+      response.writeHead(webResponse.status, Object.fromEntries(webResponse.headers));
+      if (webResponse.body) {
+        for await (const chunk of webResponse.body) response.write(chunk);
+      }
+      response.end();
+    } catch {
+      if (!response.headersSent) response.writeHead(500, { "cache-control": "no-store" });
+      response.end();
+    }
+  };
+}
+
 export async function createReceiver(options) {
   const handler = await createHandler(options);
-  const server = createServer(async (request, response) => {
-    const origin = `http://${request.headers.host ?? "localhost"}`;
-    const webRequest = new Request(new URL(request.url ?? "/", origin), {
-      method: request.method,
-      headers: request.headers,
-      body: request.method === "GET" || request.method === "HEAD" ? undefined : request,
-      duplex: "half",
-    });
-    const webResponse = await handler(webRequest);
-    response.writeHead(webResponse.status, Object.fromEntries(webResponse.headers));
-    if (webResponse.body) {
-      for await (const chunk of webResponse.body) response.write(chunk);
-    }
-    response.end();
-  });
+  const server = createServer(createRequestListener(handler));
   server.requestTimeout = 15_000;
   server.headersTimeout = 10_000;
   server.keepAliveTimeout = 5_000;

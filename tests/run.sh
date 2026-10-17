@@ -39,7 +39,7 @@ test_syntax() {
     for script in "$ROOT_DIR"/*.sh "$ROOT_DIR"/tests/*.sh; do
         /bin/zsh -n "$script" || return 1
     done
-    /usr/bin/plutil -lint "$ROOT_DIR/com.nomunyom.now-playing-sync.plist.template" >/dev/null
+    /usr/bin/plutil -lint "$ROOT_DIR/io.github.aliffrhn.apple-music-widget-bridge.plist.template" >/dev/null
 }
 
 if test_syntax; then
@@ -107,6 +107,84 @@ expect_status "sync rejects invalid artwork configuration" 1 \
     /usr/bin/env NOW_PLAYING_CONFIG="$TEST_DIR/invalid-config" \
     NOW_PLAYING_INSTALL_DIR="$TEST_DIR/runtime" \
     "$ROOT_DIR/sync-now-playing.sh" --once
+
+# End-to-end publish: fake Music readers -> sync-now-playing.sh -> HTTPS receiver.
+run_publisher_e2e() {
+    local e2e="$TEST_DIR/e2e" secret="e2e-secret-with-at-least-thirty-two-characters"
+    local account="now-playing-e2e" port="" receiver_pid="" attempt
+    /bin/mkdir -p "$e2e/data" "$e2e/runtime"
+
+    /usr/bin/openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=localhost" \
+        -keyout "$e2e/key.pem" -out "$e2e/cert.pem" \
+        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+        -addext "extendedKeyUsage=serverAuth" >/dev/null 2>&1 || return 1
+
+    /usr/bin/security create-keychain -p e2e "$e2e/test.keychain" >/dev/null 2>&1 || return 1
+    /usr/bin/security add-generic-password -a "$account" -s "apple-music-widget-bridge" \
+        -w "$secret" "$e2e/test.keychain" >/dev/null 2>&1 || return 1
+
+    cat > "$e2e/reader.sh" <<READER
+#!/bin/zsh
+print -r -- '{"schemaVersion":1,"status":"playing","isPlaying":true,"title":"E2E Song","artist":"E2E Artist","album":"E2E Album","albumArtist":null,"genre":null,"year":2026,"durationSeconds":200,"positionSeconds":12,"persistentId":"0123456789ABCDEF","capturedAt":"'\$(/bin/date -u '+%Y-%m-%dT%H:%M:%S.000Z')'"}'
+READER
+    cat > "$e2e/artwork.sh" <<'ARTWORK'
+#!/bin/zsh
+printf '\xff\xd8\xff\xe0\x00\x10\xff\xd9' > "$1"
+print -r -- '{"status":"ok","contentType":"image/jpeg","byteCount":8}'
+ARTWORK
+    /bin/chmod 700 "$e2e/reader.sh" "$e2e/artwork.sh"
+
+    NOW_PLAYING_WRITE_SECRET="$secret" node "$ROOT_DIR/tests/https-receiver.mjs" \
+        "$e2e/key.pem" "$e2e/cert.pem" "$e2e/data" "$e2e/port" &
+    receiver_pid=$!
+    for attempt in {1..50}; do
+        [[ -s "$e2e/port" ]] && break
+        /bin/sleep 0.1
+    done
+    port=$(<"$e2e/port")
+
+    {
+        print -r -- "NOW_PLAYING_ENDPOINT=https://localhost:$port/api/now-playing"
+        print -r -- "KEYCHAIN_ACCOUNT=$account"
+        print -r -- "NOW_PLAYING_ARTWORK_ENABLED=1"
+    } > "$e2e/config"
+    /bin/chmod 600 "$e2e/config"
+
+    local result=0
+    /usr/bin/env CURL_CA_BUNDLE="$e2e/cert.pem" \
+        NOW_PLAYING_CONFIG="$e2e/config" \
+        NOW_PLAYING_INSTALL_DIR="$e2e/runtime" \
+        NOW_PLAYING_READER="$e2e/reader.sh" \
+        NOW_PLAYING_ARTWORK_READER="$e2e/artwork.sh" \
+        NOW_PLAYING_KEYCHAIN="$e2e/test.keychain" \
+        "$ROOT_DIR/sync-now-playing.sh" --once >/dev/null 2>&1 || result=1
+
+    if (( result == 0 )); then
+        CURL_CA_BUNDLE="$e2e/cert.pem" /usr/bin/curl --silent --fail \
+            "https://localhost:$port/api/now-playing" > "$e2e/public.json" || result=1
+    fi
+    if (( result == 0 )); then
+        [[ "$(/usr/bin/plutil -extract title raw -- "$e2e/public.json" 2>/dev/null)" == "E2E Song" ]] || result=1
+        [[ "$(/usr/bin/plutil -extract artworkUrl raw -- "$e2e/public.json" 2>/dev/null)" == /api/now-playing/artwork* ]] || result=1
+        # The log must not contain the secret or track metadata.
+        if /usr/bin/grep -q -e "$secret" -e "E2E Song" "$e2e/runtime/now-playing-sync.log" 2>/dev/null; then
+            result=1
+        fi
+    fi
+
+    kill "$receiver_pid" 2>/dev/null
+    wait "$receiver_pid" 2>/dev/null
+    /usr/bin/security delete-keychain "$e2e/test.keychain" >/dev/null 2>&1
+    return $result
+}
+
+if ! command -v node >/dev/null 2>&1; then
+    print -- "skip - publisher end-to-end upload (Node.js is not installed)"
+elif run_publisher_e2e; then
+    record_pass "publisher uploads state and artwork to an HTTPS receiver"
+else
+    record_fail "publisher uploads state and artwork to an HTTPS receiver"
+fi
 
 print -- "$passed passed, $failed failed"
 (( failed == 0 ))

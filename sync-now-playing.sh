@@ -10,7 +10,9 @@ readonly STATE_FILE="${NOW_PLAYING_STATE_FILE:-$INSTALL_DIR/last-successful-uplo
 readonly LAST_TRACK_FILE="${NOW_PLAYING_LAST_TRACK_FILE:-$INSTALL_DIR/last-known-track.json}"
 readonly ARTWORK_CACHE_FILE="${NOW_PLAYING_ARTWORK_CACHE_FILE:-$INSTALL_DIR/uploaded-artwork-ids}"
 readonly LOG_FILE="${NOW_PLAYING_LOG_FILE:-$INSTALL_DIR/now-playing-sync.log}"
-readonly KEYCHAIN_SERVICE="nomunyom-now-playing"
+readonly KEYCHAIN_SERVICE="apple-music-widget-bridge"
+# Optional keychain file for tests; the default search list is used when empty.
+readonly KEYCHAIN_FILE="${NOW_PLAYING_KEYCHAIN:-}"
 readonly POLL_SECONDS=5
 readonly HEARTBEAT_SECONDS=30
 
@@ -18,6 +20,7 @@ typeset -g endpoint="" keychain_account="" write_secret="" artwork_enabled=1
 typeset -g current_temp="" reader_error_temp=""
 typeset -g shutting_down=0 once_mode=0
 typeset -g last_fingerprint="" last_sent_epoch=0 last_invalid_log=0 unavailable_logged=0
+typeset -g player_status="" fingerprint=""
 
 rotate_log_if_needed() {
     [[ -f "$LOG_FILE" ]] || return 0
@@ -65,8 +68,10 @@ load_config() {
         print -u2 -- "Invalid private configuration. Run install.sh again."
         return 1
     fi
+    local -a keychain_args=()
+    [[ -n "$KEYCHAIN_FILE" ]] && keychain_args=("$KEYCHAIN_FILE")
     write_secret=$(/usr/bin/security find-generic-password \
-        -a "$keychain_account" -s "$KEYCHAIN_SERVICE" -w 2>/dev/null) || {
+        -a "$keychain_account" -s "$KEYCHAIN_SERVICE" -w "${keychain_args[@]}" 2>/dev/null) || {
         print -u2 -- "The Keychain item '$KEYCHAIN_SERVICE' could not be read. Run install.sh again."
         return 1
     }
@@ -81,11 +86,12 @@ validate_json() {
     /usr/bin/plutil -convert json -o /dev/null -- "$1" >/dev/null 2>&1
 }
 
-preserve_last_track() {
-    local payload_file="$1" merged_temp
-    merged_temp=$(/usr/bin/mktemp "${TMPDIR:-/tmp}/now-playing-merged.XXXXXX")
-    /bin/chmod 600 "$merged_temp"
-    if ! /usr/bin/osascript -l JavaScript -e '
+# One JXA process per poll validates the reader schema, merges the private
+# last-track cache into empty fields, and returns status, fingerprint, and the
+# merged payload. Sets the globals player_status and fingerprint.
+prepare_payload() {
+    local payload_file="$1" output merged
+    output=$(/usr/bin/osascript -l JavaScript -e '
         ObjC.import("Foundation");
         function readJSON(path) {
             var raw = $.NSString.stringWithContentsOfFileEncodingError(path, $.NSUTF8StringEncoding, null).js;
@@ -94,10 +100,13 @@ preserve_last_track() {
         function run(argv) {
             var payload = readJSON(argv[0]);
             var cachePath = argv[1];
+            var allowed = ["playing", "paused", "stopped", "not_open", "unavailable"];
+            if (payload.schemaVersion !== 1 || allowed.indexOf(payload.status) < 0 ||
+                typeof payload.isPlaying !== "boolean" || !payload.capturedAt) throw Error("schema");
+
             var fields = ["title", "artist", "album", "albumArtist", "genre", "year",
                 "durationSeconds", "positionSeconds", "persistentId"];
             var hasTrack = payload.title !== null && payload.title !== undefined && payload.title !== "";
-
             if (hasTrack) {
                 var cached = {};
                 fields.forEach(function (field) {
@@ -118,18 +127,20 @@ preserve_last_track() {
                     // Ignore a damaged cache; the live reader payload remains valid.
                 }
             }
-            return JSON.stringify(payload);
-        }' "$payload_file" "$LAST_TRACK_FILE" > "$merged_temp" 2>/dev/null; then
-        /bin/rm -f "$merged_temp"
-        return 1
-    fi
-    if ! validate_json "$merged_temp"; then
-        /bin/rm -f "$merged_temp"
-        return 1
-    fi
-    /bin/mv -f "$merged_temp" "$payload_file"
+            return [
+                payload.status,
+                JSON.stringify([payload.status, payload.persistentId, payload.title, payload.artist, payload.album]),
+                JSON.stringify(payload)
+            ].join("\n");
+        }' "$payload_file" "$LAST_TRACK_FILE" 2>/dev/null) || return 1
     [[ -f "$LAST_TRACK_FILE" ]] && /bin/chmod 600 "$LAST_TRACK_FILE"
-    return 0
+
+    local -a lines=("${(@f)output}")
+    (( ${#lines} == 3 )) || return 1
+    player_status="${lines[1]}"
+    fingerprint="${lines[2]}"
+    merged="${lines[3]}"
+    print -r -- "$merged" > "$payload_file"
 }
 
 json_field() {
@@ -141,18 +152,6 @@ json_field() {
             var field = value[argv[1]];
             return field === null || field === undefined ? "" : String(field);
         }' "$1" "$2" 2>/dev/null
-}
-
-fingerprint_json() {
-    /usr/bin/osascript -l JavaScript -e '
-        ObjC.import("Foundation");
-        function run(argv) {
-            var raw = $.NSString.stringWithContentsOfFileEncodingError(argv[0], $.NSUTF8StringEncoding, null).js;
-            var v = JSON.parse(raw);
-            var allowed = ["playing", "paused", "stopped", "not_open", "unavailable"];
-            if (v.schemaVersion !== 1 || allowed.indexOf(v.status) < 0 || typeof v.isPlaying !== "boolean" || !v.capturedAt) throw Error("schema");
-            return JSON.stringify([v.status, v.persistentId, v.title, v.artist, v.album]);
-        }' "$1" 2>/dev/null
 }
 
 load_last_success() {
@@ -330,7 +329,7 @@ final_upload_and_exit() {
         local final_temp=$(/usr/bin/mktemp "${TMPDIR:-/tmp}/now-playing-final.XXXXXX")
         /bin/chmod 600 "$final_temp"
         unavailable_payload > "$final_temp"
-        preserve_last_track "$final_temp" || true
+        prepare_payload "$final_temp" || true
         upload_payload "$final_temp" 1 || true
         /bin/rm -f "$final_temp"
     fi
@@ -371,12 +370,7 @@ while true; do
         continue
     fi
 
-    if ! preserve_last_track "$current_temp"; then
-        log_message "Could not apply the private last-track cache; using the live reader payload."
-    fi
-
-    fingerprint=$(fingerprint_json "$current_temp")
-    if [[ -z "$fingerprint" ]]; then
+    if ! prepare_payload "$current_temp"; then
         log_message "Reader JSON did not match the expected schema."
         cleanup_temp_files
         current_temp="" reader_error_temp=""
@@ -385,7 +379,6 @@ while true; do
         continue
     fi
 
-    player_status=$(json_field "$current_temp" status)
     if [[ "$player_status" == "unavailable" && $unavailable_logged -eq 0 ]]; then
         log_message "Music state unavailable. If this persists, allow Automation access in System Settings > Privacy & Security > Automation."
         unavailable_logged=1

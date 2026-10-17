@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.nomunyom.now-playing-sync</string>
+    <string>io.github.aliffrhn.apple-music-widget-bridge</string>
     <key>ProgramArguments</key>
     <array>
         <string>__SYNC_SCRIPT__</string>

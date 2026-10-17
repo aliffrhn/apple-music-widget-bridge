@@ -14,7 +14,7 @@ import AppleMusicWidget from "./apple-music-widget/AppleMusicWidget.jsx"
 <AppleMusicWidget endpoint="/api/now-playing" ownerName="Your name" />
 ```
 
-It reads the public receiver directly; Supabase and other frontend SDKs are not required. See the runnable [`examples/react`](../examples/react) project.
+It reads the public receiver directly; no backend SDK is required. See the runnable [`examples/react`](../examples/react) project.
 
 ## Universal Web Component
 
@@ -59,6 +59,8 @@ console.log(nowPlaying.title, nowPlaying.artist, nowPlaying.artworkUrl);
 ```
 
 Use `positionSeconds` as the position at `capturedAt`. While `isPlaying` is true, add the elapsed time since `capturedAt` and clamp the result to `durationSeconds`. This creates a smooth progress bar without polling every second.
+
+The publisher sends a heartbeat every 30 seconds while playing, but it cannot send a final update if the Mac sleeps or loses its network connection. Treat a `playing` state whose `capturedAt` is more than about two minutes old as no longer live. Both included widgets do this.
 
 Treat all track metadata as untrusted text. Use `textContent` or normal framework text interpolation; never insert it as raw HTML. The included component follows this rule.
 

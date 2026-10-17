@@ -1,14 +1,23 @@
 const DEFAULT_ENDPOINT = "/api/now-playing";
+// The publisher heartbeats every 30 seconds while playing. A "playing" state
+// older than this means the Mac stopped publishing (sleep, network loss, crash).
+const PLAYING_FRESH_MILLISECONDS = 2 * 60 * 1000;
 
 export function formatTime(value) {
   const seconds = Math.max(0, Number.isFinite(value) ? Math.floor(value) : 0);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+export function isCurrentlyPlaying(state, now = Date.now()) {
+  if (!state?.isPlaying) return false;
+  const capturedAt = Date.parse(state.capturedAt);
+  return Number.isFinite(capturedAt) && now - capturedAt < PLAYING_FRESH_MILLISECONDS;
+}
+
 export function estimatePosition(state, now = Date.now()) {
   const position = Number.isFinite(state?.positionSeconds) ? state.positionSeconds : 0;
   const duration = Number.isFinite(state?.durationSeconds) ? state.durationSeconds : 0;
-  if (!state?.isPlaying) return Math.min(position, duration || position);
+  if (!isCurrentlyPlaying(state, now)) return Math.min(position, duration || position);
   const capturedAt = Date.parse(state.capturedAt);
   const elapsed = Number.isFinite(capturedAt) ? Math.max(0, (now - capturedAt) / 1000) : 0;
   return Math.min(position + elapsed, duration || position + elapsed);
@@ -232,14 +241,6 @@ export const NowPlayingWidget = typeof HTMLElement === "undefined" ? null : clas
       this.root.replaceChildren();
       this.build();
     }
-    const owner = this.getAttribute("owner-name")?.trim();
-    if (this.state.isPlaying) {
-      this.eyebrow.textContent = this.getAttribute("playing-label") || (owner ? `${owner} is listening to` : "Now playing");
-    } else if (this.state.status === "paused") {
-      this.eyebrow.textContent = this.getAttribute("paused-label") || (owner ? `${owner} paused on` : "Paused");
-    } else {
-      this.eyebrow.textContent = this.getAttribute("stopped-label") || (owner ? `${owner} last played` : "Last played");
-    }
     this.titleElement.textContent = this.state.title;
     this.artistElement.textContent = this.state.artist || this.state.album || "Unknown artist";
     this.artwork.alt = this.state.album ? `Artwork for ${this.state.album}` : "Current track artwork";
@@ -249,10 +250,26 @@ export const NowPlayingWidget = typeof HTMLElement === "undefined" ? null : clas
     this.tick();
   }
 
+  label(now) {
+    const owner = this.getAttribute("owner-name")?.trim();
+    if (isCurrentlyPlaying(this.state, now)) {
+      return this.getAttribute("playing-label") || (owner ? `${owner} is listening to` : "Now playing");
+    }
+    if (this.state.status === "paused") {
+      return this.getAttribute("paused-label") || (owner ? `${owner} paused on` : "Paused");
+    }
+    return this.getAttribute("stopped-label") || (owner ? `${owner} last played` : "Last played");
+  }
+
   tick() {
     clearTimeout(this.progressTimer);
     if (!this.state?.title || !this.progress?.isConnected) return;
-    const position = estimatePosition(this.state);
+    // Re-evaluated on every tick so a stale "playing" state stops claiming to
+    // be live even when the receiver is unreachable and no refresh succeeds.
+    const now = Date.now();
+    const label = this.label(now);
+    if (this.eyebrow.textContent !== label) this.eyebrow.textContent = label;
+    const position = estimatePosition(this.state, now);
     const duration = this.state.durationSeconds || 0;
     const percentage = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
     this.progressValue.style.width = `${percentage}%`;

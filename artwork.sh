@@ -103,7 +103,7 @@ if [[ "$content_type" != image/* ]]; then
 fi
 
 # Normalize to a web-safe JPEG around 600x600. This also keeps uploads well
-# below the Edge Function's 2 MiB limit for unusually large embedded artwork.
+# below the receiver's 2 MiB limit for unusually large embedded artwork.
 normalized_file=$(/usr/bin/mktemp "$destination_dir/.now-playing-artwork-normalized.XXXXXX")
 /bin/chmod 600 "$normalized_file"
 if ! /usr/bin/sips -Z 600 -s format jpeg -s formatOptions 85 \
