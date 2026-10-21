@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 
-const DEFAULT_POLL_INTERVAL = 15_000
+// Polls only while the page is visible, so a short interval keeps song changes
+// quick without spending requests on background tabs.
+const DEFAULT_POLL_INTERVAL = 5_000
+
+function isHidden() {
+  return typeof document !== "undefined" && document.visibilityState === "hidden"
+}
 
 export function normalizeNowPlaying(input, responseUrl) {
   if (!input || input.schemaVersion !== 1) throw new Error("Unsupported now-playing response")
@@ -36,7 +42,7 @@ export function useNowPlaying(endpoint = "/api/now-playing", pollInterval = DEFA
     let activeController = null
 
     const fetchNowPlaying = async () => {
-      if (!active || requestInFlight.current || !navigator.onLine) return
+      if (!active || requestInFlight.current || !navigator.onLine || isHidden()) return
       requestInFlight.current = true
       activeController = new AbortController()
       const timeout = window.setTimeout(() => activeController?.abort(), 8000)
@@ -67,11 +73,15 @@ export function useNowPlaying(endpoint = "/api/now-playing", pollInterval = DEFA
       fetchNowPlaying()
     }
     const handleOffline = () => setState((current) => ({ ...current, isOffline: true }))
+    const handleVisibility = () => {
+      if (!isHidden()) fetchNowPlaying()
+    }
 
     fetchNowPlaying()
     const timer = window.setInterval(fetchNowPlaying, Math.max(5000, pollInterval))
     window.addEventListener("online", handleOnline)
     window.addEventListener("offline", handleOffline)
+    document.addEventListener("visibilitychange", handleVisibility)
 
     return () => {
       active = false
@@ -80,6 +90,7 @@ export function useNowPlaying(endpoint = "/api/now-playing", pollInterval = DEFA
       window.clearInterval(timer)
       window.removeEventListener("online", handleOnline)
       window.removeEventListener("offline", handleOffline)
+      document.removeEventListener("visibilitychange", handleVisibility)
     }
   }, [endpoint, pollInterval])
 

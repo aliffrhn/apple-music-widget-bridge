@@ -227,8 +227,12 @@ Deno.test("stores state and returns an ETag", async () => {
   assertEquals(await current.json(), { ...state(), artworkUrl: null });
   const etag = current.headers.get("etag");
   assert(etag);
+  assertEquals(current.headers.get("cache-control"), "no-cache");
   const cached = await handler(request("", { headers: { "if-none-match": etag } }));
   assertEquals(cached.status, 304);
+  // Supabase sits behind Cloudflare, which weakens ETags on compressed responses.
+  const weak = await handler(request("", { headers: { "if-none-match": `W/${etag}` } }));
+  assertEquals(weak.status, 304);
   const head = await handler(request("", { method: "HEAD" }));
   assertEquals(head.status, 200);
   assertEquals(head.headers.get("etag"), etag);

@@ -26,7 +26,7 @@ Copy [`widget/now-playing-widget.js`](../widget/now-playing-widget.js) into the 
 <now-playing-widget
   endpoint="/api/now-playing"
   owner-name="Alif"
-  refresh-seconds="10"
+  refresh-seconds="5"
 ></now-playing-widget>
 ```
 
@@ -57,6 +57,8 @@ const nowPlaying = await response.json();
 
 console.log(nowPlaying.title, nowPlaying.artist, nowPlaying.artworkUrl);
 ```
+
+Both included widgets poll every 5 seconds while the page is visible and pause in background tabs, so a song change shows up within about 10 seconds. The receivers send `Cache-Control: no-cache` with an `ETag`, so a poll for unchanged data returns a small `304`. If you write your own client, avoid caching the state response for longer than your polling interval.
 
 Use `positionSeconds` as the position at `capturedAt`. While `isPlaying` is true, add the elapsed time since `capturedAt` and clamp the result to `durationSeconds`. This creates a smooth progress bar without polling every second.
 

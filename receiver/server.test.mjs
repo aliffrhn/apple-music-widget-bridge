@@ -101,8 +101,14 @@ test("stores state atomically and returns an ETag", async (t) => {
   assert.equal(current.status, 200);
   const etag = current.headers.get("etag");
   assert.ok(etag);
+  assert.equal(current.headers.get("cache-control"), "no-cache");
   const cached = await handler(request("/api/now-playing", { headers: { "if-none-match": etag } }));
   assert.equal(cached.status, 304);
+  // Cloudflare and other proxies weaken ETags when they compress responses.
+  const weak = await handler(request("/api/now-playing", { headers: { "if-none-match": `W/${etag}` } }));
+  assert.equal(weak.status, 304);
+  const listed = await handler(request("/api/now-playing", { headers: { "if-none-match": `"other", W/${etag}` } }));
+  assert.equal(listed.status, 304);
 });
 
 test("rejects stale updates", async (t) => {

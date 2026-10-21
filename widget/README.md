@@ -10,7 +10,7 @@ Copy `now-playing-widget.js` into your site's public assets, then load it as an 
 <now-playing-widget
   endpoint="/api/now-playing"
   owner-name="Alif"
-  refresh-seconds="10"
+  refresh-seconds="5"
 ></now-playing-widget>
 ```
 

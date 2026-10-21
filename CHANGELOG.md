@@ -4,8 +4,14 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+### Changed
+
+- The state response now uses `Cache-Control: no-cache` instead of allowing browsers to show a stale copy for up to 18 seconds, in both the Docker receiver and the Supabase adapter.
+- Both widgets now poll every 5 seconds by default (was 10 and 15). The React hook, like the Web Component, no longer polls while the page is hidden and refreshes as soon as it becomes visible again.
+
 ### Fixed
 
+- Conditional requests now match weak ETags (`W/"…"`) added by compressing proxies such as Cloudflare, so unchanged polls return `304` again.
 - Running `install.sh` again with a different `--endpoint` now clears the publisher's upload bookkeeping (`last-successful-upload` and `uploaded-artwork-ids`), so the new receiver gets the current state and artwork immediately instead of waiting for the next track or playback change. Reinstalling with the same endpoint keeps it, and the local `last-known-track.json` is always kept.
 
 ## [0.2.0] - 2026-10-17

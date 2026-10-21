@@ -205,6 +205,13 @@ async function readBody(request: Request, limit: number): Promise<Uint8Array> {
   return body;
 }
 
+// Proxies such as Cloudflare weaken ETags when they compress a response
+// (W/"..."), so compare the opaque value and accept a list of tags.
+function etagMatches(header: string | null, etag: string): boolean {
+  if (!header) return false;
+  return header.split(",").some((tag) => tag.trim().replace(/^W\//, "") === etag);
+}
+
 function validJpeg(bytes: Uint8Array): boolean {
   return bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
 }
@@ -294,13 +301,15 @@ export function createHandler({ store, secret, logger = console, waitUntil }: Ha
     const body = { ...(stored?.state ?? emptyState()), artworkUrl: path ? store.artworkUrl(path) : null };
     const serialized = JSON.stringify(body);
     const etag = `"${hex(await sha256(encoder.encode(serialized)))}"`;
-    if (request.headers.get("if-none-match") === etag) {
+    if (etagMatches(request.headers.get("if-none-match"), etag)) {
       return new Response(null, { status: 304, headers: { etag, "access-control-allow-origin": "*" } });
     }
     return new Response(request.method === "HEAD" ? null : serialized, {
       headers: {
         "content-type": "application/json; charset=utf-8",
-        "cache-control": "public, max-age=3, s-maxage=5, stale-while-revalidate=15",
+        // Revalidate on every poll: the ETag keeps unchanged reads cheap, and
+        // caches never serve a previous track.
+        "cache-control": "no-cache",
         "access-control-allow-origin": "*",
         "x-content-type-options": "nosniff",
         etag,
