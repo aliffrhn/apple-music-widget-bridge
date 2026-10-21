@@ -26,6 +26,24 @@ usage() {
     print -- "Usage: ./install.sh [--endpoint https://example.com/api/now-playing] [--no-artwork]"
 }
 
+installed_endpoint() {
+    local line value=""
+    [[ -r "$CONFIG_FILE" ]] || return 0
+    while IFS= read -r line; do
+        [[ "$line" == NOW_PLAYING_ENDPOINT=* ]] && value="${line#NOW_PLAYING_ENDPOINT=}"
+    done < "$CONFIG_FILE"
+    print -r -- "$value"
+}
+
+# The upload bookkeeping describes what the previous receiver already has. A new
+# receiver starts empty, so forget it; otherwise nothing is sent until the track
+# or playback state changes. last-known-track.json is local history and stays.
+reset_receiver_state() {
+    local previous="$1" next="$2"
+    [[ -n "$previous" && "$previous" == "$next" ]] && return 0
+    /bin/rm -f "$INSTALL_DIR/last-successful-upload" "$INSTALL_DIR/uploaded-artwork-ids"
+}
+
 if [[ "$(/usr/bin/uname -s)" != "Darwin" ]]; then
     print -u2 -- "This installer only supports macOS."
     exit 1
@@ -35,6 +53,12 @@ for command in /bin/zsh /usr/bin/osascript /usr/bin/curl /usr/bin/security /bin/
     /usr/bin/sips /usr/bin/file /usr/bin/xxd /bin/dd; do
     [[ -x "$command" ]] || { print -u2 -- "Required command is missing: $command"; exit 1; }
 done
+
+# Test hook: only run the receiver-state reset for this endpoint, then exit.
+if [[ -n "${NOW_PLAYING_INSTALLER_TEST_RESET:-}" ]]; then
+    reset_receiver_state "$(installed_endpoint)" "$NOW_PLAYING_INSTALLER_TEST_RESET"
+    exit
+fi
 
 while (( $# )); do
     case "$1" in
@@ -58,6 +82,7 @@ if [[ "$endpoint" != https://?* || "$endpoint" == *[[:space:]]* ]]; then
     exit 1
 fi
 
+previous_endpoint=$(installed_endpoint)
 account=$(/usr/bin/id -un)
 stage_dir=$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/now-playing-install.XXXXXX")
 /bin/chmod 700 "$stage_dir"
@@ -117,6 +142,8 @@ if [[ -f "$LEGACY_PLIST" ]] || /bin/launchctl print "gui/$uid/$LEGACY_LABEL" >/d
 fi
 /usr/bin/security delete-generic-password -a "$account" -s "$LEGACY_KEYCHAIN_SERVICE" >/dev/null 2>&1 || true
 /bin/launchctl bootout "gui/$uid" "$PLIST" >/dev/null 2>&1 || true
+# After bootout, so the old agent's final upload cannot write the state back.
+reset_receiver_state "$previous_endpoint" "$endpoint"
 /bin/launchctl bootstrap "gui/$uid" "$PLIST"
 /bin/launchctl enable "gui/$uid/$LABEL" 2>/dev/null || true
 /bin/launchctl kickstart -k "gui/$uid/$LABEL"

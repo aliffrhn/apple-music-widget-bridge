@@ -59,6 +59,8 @@ When macOS opens the secure Keychain prompt, enter the same secret from the VPS 
 "$HOME/Library/Application Support/NowPlayingSync/sync-now-playing.sh" --once
 ```
 
+If the publisher already sends to another receiver, running `install.sh` with the new endpoint switches it over. The installer forgets what the old receiver was sent, so the new one receives the current state and artwork immediately.
+
 ## 4. Add the widget
 
 Follow [the widget integration guide](widget-integration.md). For a same-domain website, keep the default `/api/now-playing` endpoint. Cross-domain public reads are also supported with CORS.

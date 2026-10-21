@@ -107,7 +107,7 @@ Enter the write secret from step 3 when macOS opens the Keychain prompt, then ve
 "$HOME/Library/Application Support/NowPlayingSync/sync-now-playing.sh" --once
 ```
 
-If the publisher is already installed for another receiver, running `install.sh` again with the new endpoint replaces it.
+If the publisher is already installed for another receiver, running `install.sh` again with the new endpoint replaces it and sends the current state and artwork to the function right away.
 
 ## 6. Point the widget at the function
 

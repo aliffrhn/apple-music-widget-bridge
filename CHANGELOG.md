@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+### Fixed
+
+- Running `install.sh` again with a different `--endpoint` now clears the publisher's upload bookkeeping (`last-successful-upload` and `uploaded-artwork-ids`), so the new receiver gets the current state and artwork immediately instead of waiting for the next track or playback change. Reinstalling with the same endpoint keeps it, and the local `last-known-track.json` is always kept.
+
 ## [0.2.0] - 2026-10-17
 
 ### Added
