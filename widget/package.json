@@ -1,6 +1,6 @@
 {
   "name": "apple-music-widget-bridge-widget",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Framework-independent Web Component for Apple Music Widget Bridge",
