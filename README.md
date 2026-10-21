@@ -2,24 +2,25 @@
 
 # Apple Music Widget Bridge
 
-**Build your own live Apple Music widget with a Mac, a tiny self-hosted bridge, and the website you already have.**
+**Build your own live Apple Music widget with a Mac, a receiver you own (a VPS or a free Supabase project), and the website you already have.**
 
 [![CI](https://github.com/aliffrhn/apple-music-widget-bridge/actions/workflows/test.yml/badge.svg)](https://github.com/aliffrhn/apple-music-widget-bridge/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/github/license/aliffrhn/apple-music-widget-bridge)](LICENSE)
 [![macOS](https://img.shields.io/badge/publisher-macOS-000000.svg?logo=apple)](now-playing.sh)
 [![Node.js 22+](https://img.shields.io/badge/receiver-Node.js%2022%2B-339933.svg?logo=node.js&logoColor=white)](receiver)
+[![Supabase](https://img.shields.io/badge/receiver-Supabase-3FCF8E.svg?logo=supabase&logoColor=white)](examples/supabase)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Live widget](https://aliffar.com/#about) · [Quick start](#quick-start) · [How it works](#architecture) · [Use your own design](#use-your-own-design) · [Contributing](#contributing) · [Security](SECURITY.md)
+[Live widget](https://aliffar.com/#about) · [Quick start](#quick-start) · [Choose a receiver](#choose-a-receiver) · [How it works](#architecture) · [Use your own design](#use-your-own-design) · [Contributing](#contributing) · [Security](SECURITY.md)
 
 </div>
 
 I wanted a live music widget on my personal website, so I built a self-hosted bridge that sends what is playing in the Music app on my Mac to the web.
 
-Use the included macOS publisher, tiny VPS receiver, and framework-independent widget to build your own version—without integrating MusicKit, creating an Xcode project, or running a centralized service.
+Use the included macOS publisher, a receiver on your own VPS or Supabase project, and a framework-independent widget to build your own version—without integrating MusicKit, creating an Xcode project, or running a centralized service.
 
 ```text
-Music app on your Mac → self-hosted bridge → your website widget
+Music app on your Mac → your receiver (VPS or Supabase) → your website widget
 ```
 
 See the idea running on [aliffar.com](https://aliffar.com/#about). The GIF below was recorded directly from the deployed widget.
@@ -40,11 +41,10 @@ This project takes a narrower route. It reads the current track from the built-i
 ## What is included
 
 - **macOS publisher:** dependency-free `zsh` scripts and a per-user LaunchAgent.
-- **Self-hosted receiver:** a small Node.js HTTP service with Docker Compose and persistent file storage.
+- **Two receivers, same contract:** a small Node.js service with Docker Compose for a VPS, or a Supabase Edge Function with a Postgres table and Storage bucket if you would rather not run a server.
 - **The aliffar.com React widget:** the animated pixel-style card from the live website, adapted to the public receiver API.
 - **Universal widget:** a dependency-free Web Component for plain HTML and non-React sites.
 - **VPS examples:** Nginx and Caddy reverse-proxy configurations.
-- **Optional Supabase adapter:** an Edge Function receiver for people without a VPS.
 - **Tests and security documentation:** checks for both the local publisher and public receiver.
 
 The components communicate through a [documented, versioned HTTP contract](docs/endpoint-contract.md). You can replace the receiver or widget without changing the Mac publisher.
@@ -53,12 +53,13 @@ The components communicate through a [documented, versioned HTTP contract](docs/
 
 ```text
 ┌────────────────────────────── Mac ──────────────────────────────┐
-│ Music.app → read-only Apple Events → background publisher      │
+│ Music.app → read-only Apple Events → background publisher       │
 └───────────────────────────────────┬─────────────────────────────┘
                                     │ authenticated HTTPS POST
                                     ▼
-┌────────────────────────────── Your VPS ─────────────────────────┐
-│ reverse proxy → receiver → current JSON + current artwork      │
+┌──────────────────── Your receiver (pick one) ───────────────────┐
+│ VPS:      reverse proxy → Node.js receiver → JSON + artwork     │
+│ Supabase: Edge Function → Postgres row + Storage artwork        │
 └───────────────────────────────────┬─────────────────────────────┘
                                     │ public HTTPS GET
                                     ▼
@@ -67,9 +68,26 @@ The components communicate through a [documented, versioned HTTP contract](docs/
 
 There is no project-operated cloud service. Each user controls their receiver, secret, published data, and website.
 
+## Choose a receiver
+
+Both receivers implement the same [endpoint contract](docs/endpoint-contract.md), so the Mac publisher and both widgets work with either one, and you can switch later by running `install.sh` again with the new endpoint.
+
+| | VPS with Docker | Supabase |
+| --- | --- | --- |
+| You need | a server with Docker, a domain, and HTTPS (Nginx or Caddy) | a Supabase account; the free plan works |
+| Runs as | `receiver/` in Docker Compose, behind your reverse proxy | the `bridge-now-playing` Edge Function |
+| Stores | one JSON file and one image in a Docker volume | one Postgres row and one image in a public Storage bucket |
+| Endpoint | `https://example.com/api/now-playing` | `https://<project-ref>.supabase.co/functions/v1/bridge-now-playing` |
+| Good to know | nothing to pause or meter | free projects can pause after inactivity; each widget poll is one function call |
+| Guide | [Self-hosting guide](docs/self-hosting.md) | [Supabase adapter guide](examples/supabase) |
+
+[aliffar.com](https://aliffar.com/#about) runs on the Supabase receiver.
+
 ## Quick start
 
 ### 1. Start the receiver
+
+#### Option A: VPS with Docker
 
 On a VPS with Docker and Docker Compose:
 
@@ -96,11 +114,29 @@ https://example.com/api/now-playing
 
 See the complete [VPS self-hosting guide](docs/self-hosting.md).
 
-No VPS? The optional [Supabase adapter](examples/supabase) runs the same receiver contract as an Edge Function with a Postgres table and a Storage bucket.
+#### Option B: Supabase
+
+Create a project in the [Supabase dashboard](https://supabase.com/dashboard), install the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started), and deploy from [`examples/supabase`](examples/supabase):
+
+```sh
+cd examples/supabase
+supabase login
+supabase link --project-ref <project-ref>
+supabase db push
+supabase functions deploy bridge-now-playing --no-verify-jwt
+```
+
+Generate a secret with `openssl rand -hex 32` and add it as `BRIDGE_NOW_PLAYING_WRITE_SECRET` under **Edge Functions → Secrets** in the dashboard. The public endpoint is:
+
+```text
+https://<project-ref>.supabase.co/functions/v1/bridge-now-playing
+```
+
+See the complete [Supabase adapter guide](examples/supabase), including how to add it to a project that already has other tables and functions.
 
 ### 2. Install the Mac publisher
 
-Clone the same repository on the Mac and run:
+Clone the same repository on the Mac and run it with your receiver's endpoint from step 1:
 
 ```zsh
 ./install.sh --endpoint 'https://example.com/api/now-playing'
@@ -150,6 +186,8 @@ Or load a pinned release straight from jsDelivr instead of copying the file:
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/gh/aliffrhn/apple-music-widget-bridge@v0.2.1/widget/now-playing-widget.js"></script>
 ```
+
+With the Supabase receiver, or a VPS on another domain, use the full endpoint URL instead of `/api/now-playing`. Both receivers allow public cross-origin reads.
 
 It works with plain HTML, WordPress, Vue, Svelte, Astro, and other frameworks that support custom elements. See the [widget integration guide](docs/widget-integration.md) for both options.
 
@@ -208,18 +246,18 @@ To switch receivers, run `install.sh` again with the new `--endpoint`. When the 
 
 ## Receiver security
 
-The included receiver:
+Both included receivers:
 
-- compares the write secret in constant time;
-- accepts state and artwork only through authenticated `POST` requests;
-- limits JSON to 64 KiB and artwork to 2 MiB;
-- validates the state schema and JPEG signature;
-- rejects stale events and artwork for a previous track;
-- writes persistent files atomically;
-- returns public data with ETags and short caching headers;
-- drops container capabilities and uses a read-only container filesystem.
+- compare the write secret in constant time;
+- accept state and artwork only through authenticated `POST` requests;
+- limit JSON to 64 KiB and artwork to 2 MiB;
+- validate the state schema and JPEG signature;
+- reject stale events and artwork for a previous track;
+- return public data with ETags and `no-cache` revalidation, so unchanged polls get a small `304`.
 
-Keep the receiver behind HTTPS, bound to VPS loopback, and never put the write secret in frontend code. Read [SECURITY.md](SECURITY.md) before publishing listening activity.
+The Docker receiver also writes files atomically, drops container capabilities, and uses a read-only container filesystem; keep it behind HTTPS and bound to VPS loopback. The Supabase receiver keeps its table private with Row Level Security and no public policies, serves reads only through the function, and allows no anonymous writes to its artwork bucket.
+
+Never put the write secret in frontend code. Read [SECURITY.md](SECURITY.md) before publishing listening activity.
 
 ## Repository layout
 
@@ -230,15 +268,15 @@ Keep the receiver behind HTTPS, bound to VPS loopback, and never put the write s
 ├── sync-now-playing.sh            authenticated publisher loop
 ├── install.sh / uninstall.sh      macOS lifecycle
 ├── doctor.sh                      installation diagnostics
-├── receiver/                      standalone HTTP receiver and tests
+├── receiver/                      Docker/VPS receiver and tests
 ├── widget/react/                  real pixel-style aliffar.com React widget
 ├── widget/now-playing-widget.js   universal Web Component
 ├── examples/react/                runnable React example
 ├── examples/nginx/                Nginx reverse proxy
 ├── examples/caddy/                Caddy reverse proxy
-├── examples/supabase/             optional Supabase Edge Function receiver
+├── examples/supabase/             Supabase Edge Function receiver and tests
 ├── docs/                          protocol and setup guides
-└── compose.yaml                   self-hosted receiver stack
+└── compose.yaml                   Docker receiver stack
 ```
 
 ## Development and tests
@@ -279,8 +317,8 @@ Please also follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report vulnerabili
 ## Limitations
 
 - The publisher is macOS-only and reads the Music app on the same Mac.
-- A self-hosted receiver or compatible hosted adapter is still required.
-- The default receiver stores only the current state and artwork, not listening history.
+- You still need a receiver: your own VPS, or a Supabase project (free projects can pause after inactivity).
+- Both receivers store only the current state and artwork, not listening history.
 - The included widgets use polling rather than a persistent Realtime connection.
 - Album artwork can be copyrighted; each operator is responsible for how it is displayed.
 - Music, Apple Music, and MusicKit are Apple trademarks. This independent project is not endorsed by Apple.
@@ -301,7 +339,7 @@ This removes only the integration's LaunchAgent, installed scripts, private stat
 
 - The macOS Music app and Apple Events provide the local now-playing state.
 - The pixel-style widget began as the music card on [aliffar.com](https://aliffar.com/#about).
-- Everyone who tests the bridge on a different VPS, proxy, or website framework.
+- Everyone who tests the bridge on a different VPS, Supabase project, proxy, or website framework.
 
 ---
 
