@@ -84,6 +84,51 @@ expect_status "installer rejects unknown options" 2 \
 expect_status "installer rejects invalid endpoints before writing" 1 \
     /usr/bin/env HOME="$FAKE_HOME" "$ROOT_DIR/install.sh" --endpoint http://example.com
 
+# Reinstalling for a different receiver must forget what the old receiver was sent.
+readonly RESET_HOME="$TEST_DIR/reset-home"
+readonly RESET_DIR="$RESET_HOME/Library/Application Support/NowPlayingSync"
+seed_receiver_state() {
+    /bin/rm -rf "$RESET_HOME"
+    /bin/mkdir -p "$RESET_DIR" "$RESET_HOME/.config/now-playing-sync"
+    [[ -n "$1" ]] && print -r -- "NOW_PLAYING_ENDPOINT=$1" > "$RESET_HOME/.config/now-playing-sync/config"
+    print -r -- "1" > "$RESET_DIR/last-successful-upload"
+    print -r -- "0123456789ABCDEF" > "$RESET_DIR/uploaded-artwork-ids"
+    print -r -- '{"title":"Kept"}' > "$RESET_DIR/last-known-track.json"
+}
+run_reset() {
+    /usr/bin/env HOME="$RESET_HOME" NOW_PLAYING_INSTALLER_TEST_RESET="$1" "$ROOT_DIR/install.sh" >/dev/null 2>&1
+}
+receiver_state_present() {
+    [[ -f "$RESET_DIR/last-successful-upload" && -f "$RESET_DIR/uploaded-artwork-ids" ]]
+}
+receiver_state_absent() {
+    [[ ! -e "$RESET_DIR/last-successful-upload" && ! -e "$RESET_DIR/uploaded-artwork-ids" ]]
+}
+last_track_kept() {
+    [[ "$(<"$RESET_DIR/last-known-track.json")" == '{"title":"Kept"}' ]]
+}
+
+seed_receiver_state "https://old.example.com/api/now-playing"
+if run_reset "https://new.example.com/api/now-playing" && receiver_state_absent && last_track_kept; then
+    record_pass "installer resets upload state when the endpoint changes"
+else
+    record_fail "installer resets upload state when the endpoint changes"
+fi
+
+seed_receiver_state "https://same.example.com/api/now-playing"
+if run_reset "https://same.example.com/api/now-playing" && receiver_state_present && last_track_kept; then
+    record_pass "installer keeps upload state when the endpoint is unchanged"
+else
+    record_fail "installer keeps upload state when the endpoint is unchanged"
+fi
+
+seed_receiver_state ""
+if run_reset "https://new.example.com/api/now-playing" && receiver_state_absent && last_track_kept; then
+    record_pass "installer resets upload state when no previous config exists"
+else
+    record_fail "installer resets upload state when no previous config exists"
+fi
+
 expect_status "uninstaller help exits safely" 0 \
     /usr/bin/env HOME="$FAKE_HOME" "$ROOT_DIR/uninstall.sh" --help
 expect_status "uninstaller rejects unknown options" 2 \

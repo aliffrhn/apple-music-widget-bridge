@@ -204,6 +204,8 @@ Install without artwork publishing:
 ./install.sh --endpoint 'https://example.com/api/now-playing' --no-artwork
 ```
 
+To switch receivers, run `install.sh` again with the new `--endpoint`. When the endpoint differs from the installed one, the installer clears the record of what was already uploaded, so the new receiver gets the current state and artwork right away instead of waiting for the next track change. Reinstalling with the same endpoint keeps that record.
+
 ## Receiver security
 
 The included receiver:
