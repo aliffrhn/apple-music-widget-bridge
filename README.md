@@ -148,7 +148,7 @@ For plain HTML or another framework, copy the universal [`widget/now-playing-wid
 Or load a pinned release straight from jsDelivr instead of copying the file:
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/aliffrhn/apple-music-widget-bridge@v0.2.0/widget/now-playing-widget.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/aliffrhn/apple-music-widget-bridge@v0.2.1/widget/now-playing-widget.js"></script>
 ```
 
 It works with plain HTML, WordPress, Vue, Svelte, Astro, and other frameworks that support custom elements. See the [widget integration guide](docs/widget-integration.md) for both options.

@@ -2,7 +2,7 @@
 // top of a storage backend, so the same routing and validation can run on
 // Supabase Edge Functions or in tests.
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.2.1";
 
 const JSON_LIMIT = 64 * 1024;
 const ARTWORK_LIMIT = 2 * 1024 * 1024;

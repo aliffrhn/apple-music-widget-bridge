@@ -4,6 +4,8 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-21
+
 ### Changed
 
 - The state response now uses `Cache-Control: no-cache` instead of allowing browsers to show a stale copy for up to 18 seconds, in both the Docker receiver and the Supabase adapter.
@@ -48,6 +50,7 @@ First public release.
 - The receiver no longer crashes when a request has a malformed `Host` header.
 - The universal widget no longer shows a stale `playing` state as live after the Mac stops publishing.
 
-[Unreleased]: https://github.com/aliffrhn/apple-music-widget-bridge/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/aliffrhn/apple-music-widget-bridge/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/aliffrhn/apple-music-widget-bridge/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/aliffrhn/apple-music-widget-bridge/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/aliffrhn/apple-music-widget-bridge/releases/tag/v0.1.0
