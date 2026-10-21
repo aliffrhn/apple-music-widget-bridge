@@ -19,7 +19,7 @@ import AppleMusicWidget from "./apple-music-widget/AppleMusicWidget.jsx"
 <AppleMusicWidget
   endpoint="/api/now-playing"
   ownerName="Your name"
-  pollInterval={15_000}
+  pollInterval={5_000}
 />
 ```
 

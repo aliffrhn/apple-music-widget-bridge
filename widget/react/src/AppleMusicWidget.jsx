@@ -20,7 +20,7 @@ function StatusChip({ label, live }) {
 export default function AppleMusicWidget({
   endpoint = "/api/now-playing",
   ownerName = "",
-  pollInterval = 15_000,
+  pollInterval = 5_000,
   className = "",
 }) {
   const { data, isOffline } = useNowPlaying(endpoint, pollInterval)

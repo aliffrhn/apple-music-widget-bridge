@@ -186,8 +186,8 @@ export const NowPlayingWidget = typeof HTMLElement === "undefined" ? null : clas
   }
 
   get refreshMilliseconds() {
-    const seconds = Number(this.getAttribute("refresh-seconds") || 10);
-    return Math.min(300, Math.max(5, Number.isFinite(seconds) ? seconds : 10)) * 1000;
+    const seconds = Number(this.getAttribute("refresh-seconds") || 5);
+    return Math.min(300, Math.max(5, Number.isFinite(seconds) ? seconds : 5)) * 1000;
   }
 
   start() {

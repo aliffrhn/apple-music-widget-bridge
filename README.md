@@ -141,7 +141,7 @@ For plain HTML or another framework, copy the universal [`widget/now-playing-wid
 <now-playing-widget
   endpoint="/api/now-playing"
   owner-name="Alif"
-  refresh-seconds="10"
+  refresh-seconds="5"
 ></now-playing-widget>
 ```
 
